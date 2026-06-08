@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FIFA World Cup 2026 — Challenge Your Friends</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&display=swap');
+:root{--gold:#C9A84C;--gold2:#f0c040;--dark:#0a0c10;--dark2:#11141c;--dark3:#181d28;--card:#1a2035;--border:#2a3050;--accent:#1a6fc4;--accent2:#0d4a8a;--green:#27ae60;--red:#e74c3c;--text:#e8eaf2;--muted:#7a849a;--third:#e67e22;--purple:#7b5cd6;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--dark);color:var(--text);font-family:'Rajdhani',sans-serif;min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 0%,rgba(26,111,196,.15),transparent 50%),radial-gradient(ellipse at 80% 100%,rgba(201,168,76,.1),transparent 50%);pointer-events:none;z-index:0;}
+.flag{width:24px;height:16px;object-fit:cover;border-radius:2px;box-shadow:0 1px 3px rgba(0,0,0,.4);vertical-align:middle;}
+.flag-sm{width:18px;height:12px;object-fit:cover;border-radius:2px;}
+/* LANDING */
+.landing{position:fixed;inset:0;z-index:500;background:radial-gradient(ellipse at 50% 0%,#16203a,#0a0c10 60%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;overflow-y:auto;}
+.landing.hidden{display:none;}
+.landing-logo{font-family:'Bebas Neue',sans-serif;font-size:clamp(34px,7vw,64px);letter-spacing:5px;color:var(--gold);text-shadow:0 0 50px rgba(201,168,76,.5);}
+.landing-sub{color:var(--muted);font-size:13px;letter-spacing:3px;text-transform:uppercase;margin:8px 0 36px;}
+.mode-cards{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;max-width:1040px;}
+.mode-card{flex:1;min-width:250px;max-width:320px;background:linear-gradient(160deg,var(--card),var(--dark3));border:1px solid var(--border);border-radius:16px;padding:30px 24px;cursor:pointer;transition:all .25s;position:relative;overflow:hidden;}
+.mode-card:hover{transform:translateY(-4px);box-shadow:0 16px 40px rgba(0,0,0,.5);}
+.mode-card.sim:hover{border-color:var(--accent);}
+.mode-card.live:hover{border-color:var(--red);}
+.mode-card.challenge:hover{border-color:var(--purple);}
+.mode-card .micon{font-size:42px;margin-bottom:12px;}
+.mode-card h2{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;margin-bottom:8px;}
+.mode-card.sim h2{color:var(--accent);}.mode-card.live h2{color:var(--red);}.mode-card.challenge h2{color:var(--purple);}
+.mode-card p{font-size:13px;color:var(--muted);line-height:1.5;}
+.mode-card .go{margin-top:16px;display:inline-block;padding:8px 20px;border-radius:30px;font-weight:700;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#fff;}
+.mode-card.sim .go{background:var(--accent);}.mode-card.live .go{background:var(--red);}.mode-card.challenge .go{background:var(--purple);}
+.live-pill{position:absolute;top:12px;right:12px;background:var(--red);color:#fff;font-size:9px;font-weight:700;letter-spacing:1px;padding:3px 9px;border-radius:20px;display:flex;align-items:center;gap:5px;}
+.new-pill{position:absolute;top:12px;right:12px;background:var(--purple);color:#fff;font-size:9px;font-weight:700;letter-spacing:1px;padding:3px 9px;border-radius:20px;}
+.live-dot{width:6px;height:6px;border-radius:50%;background:#fff;animation:pulse 1.4s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+/* GENERIC */
+.mode-wrap{display:none;position:relative;z-index:10;} .mode-wrap.active{display:block;}
+header{text-align:center;padding:20px;border-bottom:1px solid var(--border);}
+header h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(22px,4vw,40px);letter-spacing:3px;color:var(--purple);}
+header p{color:var(--muted);font-size:12px;letter-spacing:2px;text-transform:uppercase;margin-top:3px;}
+.back-home{background:transparent;border:1px solid var(--border);color:var(--muted);padding:5px 14px;border-radius:20px;font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:1px;cursor:pointer;}
+.back-home:hover{border-color:var(--gold);color:var(--gold);}
+.btn{padding:10px 22px;border-radius:8px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;border:none;transition:all .2s;}
+.btn-primary{background:var(--accent);color:#fff;}.btn-primary:hover{background:#2280d4;}
+.btn-purple{background:var(--purple);color:#fff;}.btn-purple:hover{filter:brightness(1.1);}
+.btn-gold{background:var(--gold);color:var(--dark);}.btn-gold:hover{background:var(--gold2);}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text);}
+.btn:disabled{opacity:.5;cursor:default;}
+.input{width:100%;padding:11px 14px;background:var(--dark3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Rajdhani',sans-serif;font-size:15px;margin-bottom:12px;}
+.input:focus{outline:none;border-color:var(--purple);}
+.label{display:block;font-size:11px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px;}
+.center-box{max-width:420px;margin:40px auto;padding:0 20px;}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:26px;}
+.panel h2{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;margin-bottom:6px;color:var(--text);}
+.panel .sub{font-size:13px;color:var(--muted);margin-bottom:18px;}
+.choice-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;}
+.choice{flex:1;min-width:150px;background:var(--dark3);border:1px solid var(--border);border-radius:12px;padding:22px 16px;text-align:center;cursor:pointer;transition:all .2s;}
+.choice:hover{border-color:var(--purple);transform:translateY(-2px);}
+.choice .ci{font-size:34px;margin-bottom:8px;}
+.choice h3{font-size:16px;font-weight:700;margin-bottom:4px;}
+.choice p{font-size:12px;color:var(--muted);}
+.msg{padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:12px;}
+.msg.err{background:rgba(231,76,60,.15);border:1px solid rgba(231,76,60,.4);color:#ff9a8f;}
+.msg.ok{background:rgba(39,174,96,.15);border:1px solid rgba(39,174,96,.4);color:#7fe0a0;}
+.msg.info{background:rgba(26,111,196,.12);border:1px solid rgba(26,111,196,.3);color:#9cc4ec;}
+.dev-code{background:rgba(201,168,76,.12);border:1px dashed var(--gold);border-radius:8px;padding:10px;text-align:center;margin-bottom:12px;}
+.dev-code b{font-size:24px;letter-spacing:6px;color:var(--gold2);}
+.code-display{background:var(--dark3);border:2px dashed var(--purple);border-radius:10px;padding:16px;text-align:center;margin:14px 0;}
+.code-display .code{font-family:'Bebas Neue',sans-serif;font-size:38px;letter-spacing:8px;color:var(--purple);}
+.tabs{display:flex;justify-content:center;gap:4px;padding:10px 16px;background:var(--dark2);border-bottom:1px solid var(--border);flex-wrap:wrap;position:sticky;top:0;z-index:100;}
+.tab{padding:7px 16px;border-radius:5px;font-weight:700;font-size:12px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);transition:all .2s;}
+.tab:hover{color:var(--text);border-color:var(--purple);}
+.tab.active{background:var(--purple);border-color:var(--purple);color:#fff;}
+.userbar{display:flex;align-items:center;gap:10px;justify-content:center;padding:8px;font-size:12px;color:var(--muted);background:var(--dark2);flex-wrap:wrap;}
+.userbar b{color:var(--text);}
+.group-chip{background:var(--dark3);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:12px;cursor:pointer;}
+.group-chip.active{border-color:var(--purple);color:var(--purple);}
+.view{display:none;}.view.active{display:block;}
+.match-row{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;}
+.mn{font-size:10px;color:var(--muted);min-width:26px;text-align:center;font-weight:700;}
+.gb{font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;background:var(--accent2);min-width:26px;text-align:center;}
+.tc{min-width:58px;text-align:center;}.tc .t{font-size:11px;font-weight:700;color:var(--gold);}.tc .d{font-size:9px;color:var(--muted);}
+.teams{display:flex;align-items:center;gap:6px;flex:1;min-width:0;}
+.tm{display:flex;align-items:center;gap:5px;flex:1;justify-content:flex-end;}.tm.r{justify-content:flex-start;}
+.tn{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:92px;}
+.si{display:flex;align-items:center;gap:3px;}
+.sib{width:30px;height:28px;background:var(--dark3);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:15px;font-weight:700;text-align:center;font-family:'Rajdhani',sans-serif;}
+.sib:focus{outline:none;border-color:var(--purple);}
+.sib.locked{opacity:.5;}
+.sep{color:var(--muted);font-weight:700;}
+.lock-badge{font-size:8px;color:var(--red);font-weight:700;letter-spacing:1px;}
+.pts-badge{font-size:11px;font-weight:700;color:var(--green);min-width:30px;text-align:center;}
+.list{max-width:760px;margin:0 auto;padding:14px 16px 80px;}
+.day-title{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:2px;color:var(--muted);padding:12px 0 5px;border-bottom:1px solid var(--border);margin-bottom:8px;}
+.standings-table{max-width:620px;margin:14px auto;padding:0 16px;}
+.st-row{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:5px;}
+.st-row.me{border-color:var(--purple);background:rgba(123,92,214,.12);}
+.st-rank{font-family:'Bebas Neue',sans-serif;font-size:20px;width:30px;text-align:center;color:var(--gold);}
+.st-name{flex:1;font-weight:700;}
+.st-pts{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--green);}
+.st-sub{font-size:11px;color:var(--muted);}
+.md-tabs{display:flex;gap:5px;flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;}
+.md-tab{flex-shrink:0;text-align:center;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);}
+.md-tab.active{background:var(--purple);border-color:var(--purple);color:#fff;}
+.sub-tabs{display:flex;gap:6px;justify-content:center;padding:10px;flex-wrap:wrap;}
+.sub-tab{padding:6px 14px;border-radius:6px;font-size:12px;font-weight:700;letter-spacing:1px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);}
+.sub-tab.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+.info-box{background:rgba(123,92,214,.1);border:1px solid rgba(123,92,214,.3);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--muted);margin:12px 16px;}
+.info-box strong{color:var(--purple);}
+.scoring-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin:4px;font-size:12px;display:inline-block;}
+.scoring-card b{color:var(--gold);}
+.iframe-wrap{width:100%;height:calc(100vh - 60px);border:none;}
+.muted{color:var(--muted);font-size:12px;}
+.loading{text-align:center;padding:40px;color:var(--muted);}
+.spinner{display:inline-block;width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--purple);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:600px){.tn{max-width:70px;}}
+</style>
+</head>
+<body>
+
+<!-- LANDING -->
+<div class="landing" id="landing">
+  <div class="landing-logo">⚽ WORLD CUP 2026</div>
+  <div class="landing-sub">Road to the Final · USA · Canada · Mexico</div>
+  <div class="mode-cards">
+    <div class="mode-card sim" onclick="enterMode('sim')">
+      <div class="micon">🎮</div>
+      <h2>Simulate to the Final</h2>
+      <p>Predict every result yourself. Rank the groups, pick the best third-placed teams, build your own road to glory.</p>
+      <span class="go">Start Predicting →</span>
+    </div>
+    <div class="mode-card live" onclick="enterMode('live')">
+      <span class="live-pill"><span class="live-dot"></span>LIVE</span>
+      <div class="micon">📡</div>
+      <h2>Actual Live Path</h2>
+      <p>Follow the real tournament — live scores, group standings and the real bracket as it happens. View-only.</p>
+      <span class="go">Watch Live →</span>
+    </div>
+    <div class="mode-card challenge" onclick="enterMode('challenge')">
+      <span class="new-pill">NEW</span>
+      <div class="micon">🏆</div>
+      <h2>Challenge Your Friends</h2>
+      <p>Create a group, invite friends with a code, and compete in two fantasy games — predict scores and the champion.</p>
+      <span class="go">Compete →</span>
+    </div>
+  </div>
+  <div style="margin-top:30px;font-size:11px;color:var(--muted);letter-spacing:1px;">Two fantasy competitions · Group &amp; global leaderboards</div>
+</div>
+
+<!-- SIM (links to standalone tool) -->
+<div class="mode-wrap" id="mode-sim">
+  <div style="padding:8px 16px;background:var(--dark2);border-bottom:1px solid var(--border);"><button class="back-home" onclick="goHome()">← Home</button></div>
+  <iframe id="simFrame" class="iframe-wrap" title="Simulator"></iframe>
+</div>
+<div class="mode-wrap" id="mode-live">
+  <div style="padding:8px 16px;background:var(--dark2);border-bottom:1px solid var(--border);"><button class="back-home" onclick="goHome()">← Home</button></div>
+  <iframe id="liveFrame" class="iframe-wrap" title="Live"></iframe>
+</div>
+
+<!-- CHALLENGE -->
+<div class="mode-wrap" id="mode-challenge">
+  <header>
+    <div style="display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;">
+      <button class="back-home" onclick="goHome()">← Home</button>
+      <div><h1>🏆 Challenge Your Friends</h1><p>Fantasy Predictions · World Cup 2026</p></div>
+    </div>
+  </header>
+  <div id="challengeBody"></div>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>
