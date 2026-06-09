@@ -121,6 +121,21 @@ header p{color:var(--muted);font-size:12px;letter-spacing:2px;text-transform:upp
 .kind-opt:hover{border-color:var(--purple);}
 .kind-opt.active{border-color:var(--purple);background:rgba(123,92,214,.15);color:var(--purple);}
 .sib{width:42px;height:42px;font-size:20px;}
+/* Champions prediction bracket graphic */
+.ch-bracket-outer{overflow-x:auto;padding:8px 4px 16px;-webkit-overflow-scrolling:touch;}
+.ch-bracket-inner{display:flex;gap:6px;min-width:1180px;align-items:stretch;}
+.br-round{display:flex;flex-direction:column;gap:0;min-width:128px;max-width:138px;flex:1;}
+.br-round-title{font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:2px;text-align:center;color:var(--gold);background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.15);border-radius:4px;padding:5px 4px;margin-bottom:4px;}
+.br-round-title span{font-size:9px;color:var(--muted);display:inline;letter-spacing:1px;}
+.br-matches{display:flex;flex-direction:column;flex:1;justify-content:space-around;}
+.br-match{background:var(--card);border:1px solid var(--border);border-radius:5px;overflow:hidden;margin:3px 0;position:relative;}
+.br-mnum{font-size:8px;color:var(--muted);text-align:center;background:rgba(255,255,255,.03);padding:1px 0;letter-spacing:1px;font-weight:700;}
+.br-team{display:flex;align-items:center;gap:5px;padding:5px 7px;font-size:10px;font-weight:600;border-bottom:1px solid rgba(255,255,255,.04);min-height:26px;}
+.br-team:last-child{border-bottom:none;}
+.br-team.tbd{color:var(--muted);font-size:9px;font-style:italic;}
+.br-team.winner{background:rgba(39,174,96,.22);color:#7fe0a0;}
+.br-team .bn{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.champ-mini{text-align:center;border:1px solid rgba(201,168,76,.3);background:rgba(201,168,76,.08);border-radius:8px;padding:8px 6px;margin-top:6px;}
 @media(max-width:600px){
   .tn{max-width:78px;font-size:13px;}
   .sib{width:46px;height:46px;font-size:22px;}

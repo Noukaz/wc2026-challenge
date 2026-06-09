@@ -709,6 +709,83 @@ window.addEventListener('message', async (ev) => {
     if (currentComp === 'champions') renderChampionsPredict();
   }
 });
+// ---- Champions bracket graphic data (mirrors the simulator) ----
+const CH_BRACKET_TREE = {
+  r16_1: ['r32_1', 'r32_2'], r16_2: ['r32_3', 'r32_4'], r16_3: ['r32_5', 'r32_6'], r16_4: ['r32_7', 'r32_8'],
+  r16_5: ['r32_9', 'r32_10'], r16_6: ['r32_11', 'r32_12'], r16_7: ['r32_13', 'r32_14'], r16_8: ['r32_15', 'r32_16'],
+  qf_1: ['r16_1', 'r16_2'], qf_2: ['r16_3', 'r16_4'], qf_3: ['r16_5', 'r16_6'], qf_4: ['r16_7', 'r16_8'],
+  sf_1: ['qf_1', 'qf_2'], sf_2: ['qf_3', 'qf_4'], final: ['sf_1', 'sf_2'],
+};
+// bracket id -> official match number
+const CH_MATCH_NUM = {
+  r32_3:73, r32_1:74, r32_9:75, r32_2:76, r32_4:77, r32_12:78, r32_10:79, r32_8:80,
+  r32_11:81, r32_7:82, r32_6:83, r32_5:84, r32_13:85, r32_14:86, r32_15:87, r32_16:88,
+  r16_1:89, r16_2:90, r16_5:91, r16_6:92, r16_3:93, r16_4:94, r16_7:95, r16_8:96,
+  qf_1:97, qf_2:98, qf_3:99, qf_4:100, sf_1:101, sf_2:102, final:104,
+};
+// R32 slot labels (for showing who plays whom when no team picked yet)
+const CH_R32_SLOTS = {
+  r32_1:['1E','3rd A/B/C/D/F'], r32_2:['1I','3rd C/D/F/G/H'], r32_3:['2A','2B'], r32_4:['1F','2C'],
+  r32_5:['2K','2L'], r32_6:['1H','2J'], r32_7:['1D','3rd B/E/F/I/J'], r32_8:['1G','3rd A/E/H/I/J'],
+  r32_9:['1C','2F'], r32_10:['1A','3rd C/E/F/H/I'], r32_11:['1L','3rd E/H/I/J/K'], r32_12:['1B','2E'],
+  r32_13:['1J','2H'], r32_14:['2D','2G'], r32_15:['1K','3rd D/E/I/J/L'], r32_16:['2I','3rd A/B/E/F/G'],
+};
+
+// Returns the two team codes feeding a match id (from picks), or [null,null]
+function chFeeders(bracket, bid) {
+  if (bid.startsWith('r32_')) return [null, null]; // R32 source = slot labels, handled separately
+  const from = CH_BRACKET_TREE[bid];
+  if (!from) return [null, null];
+  return [bracket[from[0]] || null, bracket[from[1]] || null];
+}
+
+// Build the bracket graphic, highlighting the user's picked winners in green
+function renderChampionsBracket(payload) {
+  const bracket = payload.bracket || {};
+  const cell = (bid) => {
+    const winner = bracket[bid] || null;
+    let a, b;
+    if (bid.startsWith('r32_')) {
+      const slot = CH_R32_SLOTS[bid] || ['?', '?'];
+      a = { code: null, label: slot[0] };
+      b = { code: null, label: slot[1] };
+    } else {
+      const [fa, fb] = chFeeders(bracket, bid);
+      a = { code: fa, label: 'Winner #' + (CH_MATCH_NUM[CH_BRACKET_TREE[bid][0]] || '?') };
+      b = { code: fb, label: 'Winner #' + (CH_MATCH_NUM[CH_BRACKET_TREE[bid][1]] || '?') };
+    }
+    const teamRow = (team) => {
+      const isWinner = team.code && winner && team.code === winner;
+      if (!team.code) return `<div class="br-team tbd"><span class="bn">${team.label}</span></div>`;
+      return `<div class="br-team ${isWinner ? 'winner' : ''}">${flag(team.code, true)}<span class="bn">${team.code.toUpperCase()}</span>${isWinner ? '<span style="color:var(--green);font-size:9px">★</span>' : ''}</div>`;
+    };
+    return `<div class="br-match"><div class="br-mnum">#${CH_MATCH_NUM[bid] || ''}</div>${teamRow(a)}${teamRow(b)}</div>`;
+  };
+  const roundCol = (title, ids) => `<div class="br-round"><div class="br-round-title">${title}</div><div class="br-matches">${ids.map(cell).join('')}</div></div>`;
+
+  const champ = bracket['final'] || null;
+  // Left half / center final / right half
+  const left = `
+    ${roundCol('R32', ['r32_1','r32_2','r32_3','r32_4','r32_5','r32_6','r32_7','r32_8'])}
+    ${roundCol('R16', ['r16_1','r16_2','r16_3','r16_4'])}
+    ${roundCol('QF', ['qf_1','qf_2'])}
+    ${roundCol('SF', ['sf_1'])}`;
+  const center = `<div class="br-round" style="min-width:150px;max-width:150px;">
+    <div class="br-round-title" style="color:var(--gold2);border-color:rgba(201,168,76,.4)">FINAL <span>#104</span></div>
+    <div class="br-matches" style="justify-content:center;gap:7px;">
+      <div style="text-align:center;font-size:32px;">🏆</div>
+      ${cell('final')}
+      ${champ ? `<div class="champ-mini"><div style="margin-bottom:3px">${flag(champ)}</div><div style="font-size:9px;color:var(--gold);letter-spacing:1px;">${t('predictedChamp')}</div><div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--gold2);">${champ.toUpperCase()}</div></div>` : ''}
+    </div></div>`;
+  const right = `
+    ${roundCol('SF', ['sf_2'])}
+    ${roundCol('QF', ['qf_3','qf_4'])}
+    ${roundCol('R16', ['r16_5','r16_6','r16_7','r16_8'])}
+    ${roundCol('R32', ['r32_9','r32_10','r32_11','r32_12','r32_13','r32_14','r32_15','r32_16'])}`;
+
+  return `<div class="ch-bracket-outer"><div class="ch-bracket-inner">${left}${center}${right}</div></div>`;
+}
+
 function renderChampionsView(payload, points) {
   if (!payload) return `<div class="loading">${t('noPredSubmitted')}</div>`;
   const groups = payload.groups || {};
@@ -719,10 +796,6 @@ function renderChampionsView(payload, points) {
     </div>`).join('');
   const bracket = payload.bracket || {};
   const champ = bracket['final'] || null;
-  const teamPill = (code) => code ? `<span class="scoring-card" style="padding:5px 9px;">${flag(code, true)} <b>${code.toUpperCase()}</b></span>` : `<span class="scoring-card" style="padding:5px 9px;opacity:.5;">—</span>`;
-  const roundBlock = (title, ids) => { const picks = ids.map(id => bracket[id]).filter(Boolean); if (!picks.length) return ''; return `<div style="margin-top:12px;"><div class="muted" style="text-align:center;letter-spacing:1px;text-transform:uppercase;font-size:11px;margin-bottom:6px;">${title}</div><div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;">${picks.map(c => teamPill(c)).join('')}</div></div>`; };
-  const r32 = Array.from({length:16},(_,i)=>'r32_'+(i+1)); const r16 = Array.from({length:8},(_,i)=>'r16_'+(i+1));
-  const qf = Array.from({length:4},(_,i)=>'qf_'+(i+1)); const sf = ['sf_1','sf_2'];
   const hasPicks = Object.keys(bracket).some(k => k !== 'final' && bracket[k]);
   return `<div style="margin-top:14px;">
     ${points != null ? `<div class="msg ok">${t('currentPoints')} <b>${points}</b></div>` : ''}
@@ -730,6 +803,8 @@ function renderChampionsView(payload, points) {
     <div class="day-title" style="margin-top:6px;">${t('groupFinish')}</div>
     <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;">${groupHtml}</div>
     <div class="muted" style="text-align:center;margin-top:10px;">${t('best3rds')} ${(payload.best3||[]).map(c=>c.toUpperCase()).join(', ')||'—'}</div>
-    ${hasPicks || champ ? `<div class="day-title" style="margin-top:18px;">${t('knockoutPath')}</div>${roundBlock(t('r32w'), r32)}${roundBlock(t('r16w'), r16)}${roundBlock(t('qfw'), qf)}${roundBlock(t('sfw'), sf)}` : ''}
+    ${hasPicks || champ ? `<div class="day-title" style="margin-top:18px;">${t('knockoutPath')}</div>
+      <div class="muted" style="text-align:center;margin-bottom:8px;">${LANG==='fr'?'Vos vainqueurs sont en vert · numéro de match indiqué':'Your picked winners are in green · match number shown'}</div>
+      ${renderChampionsBracket(payload)}` : ''}
   </div>`;
 }
