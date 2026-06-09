@@ -136,7 +136,7 @@ function langToggle() {
 function enterMode(mode) {
   document.getElementById('landing').classList.add('hidden');
   ['sim', 'live', 'challenge'].forEach(m => document.getElementById('mode-' + m).classList.toggle('active', m === mode));
-  if (mode === 'sim') { const f = document.getElementById('simFrame'); if (!f.src) f.src = '/simulator.html'; }
+  if (mode === 'sim') { const f = document.getElementById('simFrame'); if (!f.src) f.src = '/simulator.html#sim'; }
   else if (mode === 'live') { const f = document.getElementById('liveFrame'); if (!f.src) f.src = '/simulator.html#live'; }
   else if (mode === 'challenge') { renderChallenge(); }
   window.scrollTo(0, 0);

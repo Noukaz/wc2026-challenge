@@ -590,17 +590,11 @@ function bracketIdToMatchNum(bid) {
 
 // Unique ET dates in schedule order, with matchday label
 function getScheduleDates() {
+  // Match Schedule shows GROUP-STAGE matches only (knockout teams aren't known yet,
+  // and group standings depend solely on these games).
   const seen = [];
   SCHEDULE.forEach(m => {
     if (!seen.find(d=>d.date===m.date)) seen.push({date:m.date, label:'MD'+m.md, stage:'group'});
-  });
-  KNOCKOUT_SCHEDULE.forEach(m => {
-    if (!seen.find(d=>d.date===m.date)) seen.push({date:m.date, label:m.round, stage:'ko'});
-    else {
-      // If a date already exists (e.g. overlap), prefer keeping group label but note ko
-      const ex = seen.find(d=>d.date===m.date);
-      if (ex.stage==='group' && m.round) { /* keep group */ }
-    }
   });
   seen.sort((a,b)=> a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
   return seen;
@@ -631,7 +625,7 @@ function renderSchedule() {
   list.innerHTML = '';
 
   const groupMatches = SCHEDULE.filter(m=>m.date===currentDate);
-  const koMatches = KNOCKOUT_SCHEDULE.filter(m=>m.date===currentDate);
+  const koMatches = []; // Match Schedule is group-stage only
 
   // Show standings bar only on group-stage days
   const stdBar = document.querySelector('.standings-bar');
@@ -740,6 +734,9 @@ function setScore(num, side, val) {
   applyStandingsToGroups();
   state.bracket = {};
   renderStandings();
+  // Keep the other views in sync with the new standings (fixes wrong ranking/winner display)
+  if (document.getElementById('groupsGrid')) renderGroups();
+  if (document.getElementById('thirdGrid') && document.getElementById('view-third') && document.getElementById('view-third').classList.contains('active')) renderThird();
   updateProgress();
 }
 function renderStandings() {
@@ -1629,6 +1626,11 @@ updateProgress();
       var scoresTab = document.getElementById('tab-scores');
       if (scoresTab) scoresTab.style.display = 'none';
       if (typeof showView==='function') setTimeout(()=>showView('groups'), 50);
+    }
+    else if (h.indexOf('sim')>=0){
+      // Came straight from "Simulate to the Final" — skip the internal landing, go to the simulator
+      if (typeof enterMode==='function') enterMode('sim');
+      if (typeof showView==='function') setTimeout(()=>showView('scores'), 50);
     }
   }
   if (location.hash) applyHash();
