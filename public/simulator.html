@@ -1553,12 +1553,65 @@ updateProgress();
     Object.keys(state.bracket||{}).forEach(mid=>{ const w = state.bracket[mid]; if (w) bracketOut[mid] = w.code; });
     return { groups: groupsOut, best3: best3, bracket: bracketOut };
   };
+
+  // Find a team object by its flag code anywhere in GROUPS
+  function teamByCode(code){
+    for (const g of Object.keys(GROUPS)){
+      const found = (GROUPS[g]||[]).find(t=>t.code===code);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  // Apply a saved payload back into the simulator state so the builder shows it (no reset)
+  window.loadChampionsPayload = function(payload){
+    if (!payload) return;
+    try {
+      // 1) Group rankings: reorder each group's teams to match saved order
+      if (payload.groups){
+        Object.keys(payload.groups).forEach(g=>{
+          const order = payload.groups[g];
+          if (!order || !state.groups[g]) return;
+          state.groups[g].sort((a,b)=>{
+            const ia = order.indexOf(a.code); const ib = order.indexOf(b.code);
+            return (ia<0?99:ia) - (ib<0?99:ib);
+          });
+        });
+      }
+      // 2) Best thirds: rebuild from saved codes (linked to group ranking — they are the 3rd-placed teams)
+      if (Array.isArray(payload.best3)){
+        state.third = payload.best3.map(code=>{
+          const tm = teamByCode(code);
+          if (!tm) return null;
+          // find which group this team is 3rd in
+          let grp=null;
+          Object.keys(state.groups).forEach(g=>{ if (state.groups[g][2] && state.groups[g][2].code===code) grp=g; });
+          return Object.assign({}, tm, { group: grp });
+        }).filter(Boolean);
+      }
+      // 3) Bracket winners
+      if (payload.bracket){
+        state.bracket = {};
+        Object.keys(payload.bracket).forEach(mid=>{
+          const tm = teamByCode(payload.bracket[mid]);
+          if (tm) state.bracket[mid] = tm;
+        });
+      }
+      // Re-render whatever view is active
+      if (typeof showView==='function') showView('groups');
+    } catch(e){ console.warn('loadChampionsPayload failed', e); }
+  };
+
   window.addEventListener('message', function(ev){
-    if (ev.data && ev.data.type === 'GET_CHAMPIONS_PREDICTION'){
+    if (!ev.data) return;
+    if (ev.data.type === 'GET_CHAMPIONS_PREDICTION'){
       const payload = window.buildChampionsPayload();
-      (ev.source||window.parent).postMessage({ type:'CHAMPIONS_PREDICTION', payload: payload }, '*');
+      (ev.source||window.parent).postMessage({ type:'CHAMPIONS_PREDICTION', payload: payload, autoSave: !!ev.data.autoSave }, '*');
+    } else if (ev.data.type === 'LOAD_CHAMPIONS_PREDICTION'){
+      window.loadChampionsPayload(ev.data.payload);
     }
   });
+
   function applyHash(){
     const h = (location.hash||'').toLowerCase();
     if (h.indexOf('live')>=0){ if (typeof enterMode==='function') enterMode('live'); }

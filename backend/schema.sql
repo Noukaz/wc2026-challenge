@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS groups (
   id          SERIAL PRIMARY KEY,
   name        TEXT NOT NULL,
   code        TEXT UNIQUE NOT NULL,
+  kind        TEXT DEFAULT 'friends',
   owner_id    INTEGER REFERENCES users(id),
   created_at  TIMESTAMPTZ DEFAULT now()
 );

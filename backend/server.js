@@ -86,6 +86,7 @@ app.get('/api/me', auth, async (req, res) => {
 app.post('/api/groups/create', auth, async (req, res) => {
   try {
     const name = (req.body.name || '').trim();
+    const kind = ['friends', 'colleagues', 'family'].includes(req.body.kind) ? req.body.kind : 'friends';
     if (!name) return res.status(400).json({ error: 'Group name required' });
     let code, exists = true, attempts = 0;
     while (exists && attempts < 20) {
@@ -93,7 +94,7 @@ app.post('/api/groups/create', auth, async (req, res) => {
       const c = await query('SELECT 1 FROM groups WHERE code=$1', [code]);
       exists = c.rowCount > 0; attempts++;
     }
-    const g = await query('INSERT INTO groups (name, code, owner_id) VALUES ($1,$2,$3) RETURNING *', [name, code, req.user.id]);
+    const g = await query('INSERT INTO groups (name, code, kind, owner_id) VALUES ($1,$2,$3,$4) RETURNING *', [name, code, kind, req.user.id]);
     await query('INSERT INTO group_members (group_id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [g.rows[0].id, req.user.id]);
     res.json({ group: g.rows[0] });
   } catch (e) { console.error(e); res.status(500).json({ error: 'Could not create group' }); }

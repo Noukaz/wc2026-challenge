@@ -13,6 +13,9 @@ export async function ensureDatabase() {
     const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
     await query(schema);
 
+    // Safe migration: add 'kind' column if an older database is missing it
+    await query("ALTER TABLE groups ADD COLUMN IF NOT EXISTS kind TEXT DEFAULT 'friends'");
+
     // Only seed fixtures if the matches table is empty (fast check)
     const c = await query('SELECT COUNT(*)::int AS n FROM matches');
     if (c.rows[0].n === 0) {
