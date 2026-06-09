@@ -358,8 +358,8 @@ async function renderInternational() {
   document.getElementById('compBody').innerHTML = `
     <div class="info-box">🎯 <strong>${t('intlInfo')}</strong></div>
     <div class="sub-tabs">
-      <button class="sub-tab ${currentSub==='predict'?'active':''}" onclick="setSub('predict')">${t('myPredictions')}</button>
       <button class="sub-tab ${currentSub==='all'?'active':''}" onclick="setSub('all')">${t('predictAll')}</button>
+      <button class="sub-tab ${currentSub==='predict'?'active':''}" onclick="setSub('predict')">${t('myPredictions')}</button>
       <button class="sub-tab ${currentSub==='group'?'active':''}" onclick="setSub('group')">${t('groupStandings')}</button>
       <button class="sub-tab ${currentSub==='global'?'active':''}" onclick="setSub('global')">${t('globalStandings')}</button>
       <button class="sub-tab ${currentSub==='friends'?'active':''}" onclick="setSub('friends')">${t('friendsPicks')}</button>
@@ -374,31 +374,81 @@ async function renderInternational() {
 async function loadMyMatchPreds() {
   try { const r = await api('/api/predictions/match'); myMatchPreds = {}; r.predictions.forEach(p => myMatchPreds[p.match_number] = p); } catch {}
 }
-function orderedDayKeys() {
+
+// Stages group the tournament into clickable sections; each expands to day-by-day tabs.
+const STAGE_DEFS = [
+  { id: 'group', label: { en: 'Group Stage', fr: 'Phase de groupes' }, rounds: [1, 2, 3] },
+  { id: 'r32', label: { en: 'Round of 32', fr: '16es de finale' }, rounds: [4] },
+  { id: 'r16', label: { en: 'Round of 16', fr: '8es de finale' }, rounds: [5] },
+  { id: 'qf', label: { en: 'Quarter-finals', fr: 'Quarts' }, rounds: [6] },
+  { id: 'sf', label: { en: 'Semi-finals', fr: 'Demi-finales' }, rounds: [7] },
+  { id: 'final', label: { en: 'Final & 3rd place', fr: 'Finale & 3e place' }, rounds: [8] },
+];
+function stageLabel(s) { return s.label[LANG] || s.label.en; }
+function stageOfRound(r) { return STAGE_DEFS.find(s => s.rounds.includes(r)) || STAGE_DEFS[0]; }
+function stagesWithMatches() {
+  return STAGE_DEFS.filter(s => matches.some(m => s.rounds.includes(m.round_number)));
+}
+function daysInStage(stage) {
   const seen = [];
-  [...matches].sort((a, b) => new Date(a.date_utc) - new Date(b.date_utc)).forEach(m => {
-    const k = localDateKey(m.date_utc);
-    if (!seen.find(s => s.key === k)) seen.push({ key: k, round: m.round_number });
-  });
+  matches.filter(m => stage.rounds.includes(m.round_number))
+    .sort((a, b) => new Date(a.date_utc) - new Date(b.date_utc))
+    .forEach(m => { const k = localDateKey(m.date_utc); if (!seen.includes(k)) seen.push(k); });
   return seen;
 }
+let currentStage = null;
 async function renderMatchPredict() {
   const sb = document.getElementById('subBody');
   sb.innerHTML = `<div class="loading"><span class="spinner"></span></div>`;
   await loadMyMatchPreds();
-  const days = orderedDayKeys();
-  if (!liveDayKey) { const todayKey = new Date().toLocaleDateString('en-CA'); liveDayKey = (days.find(d => d.key >= todayKey) || days[0]).key; }
-  const tabsHtml = days.map(d => {
-    const lbl = d.round <= 3 ? 'MD' + d.round : roundShort(d.round);
-    return `<button class="md-tab ${d.key===liveDayKey?'active':''}" onclick="setLiveDay('${d.key}')"><span style="font-size:8px;display:block;opacity:.6">${lbl}</span>${shortLabel(d.key)}</button>`;
-  }).join('');
+  const stages = stagesWithMatches();
+  // Default stage = the one containing today, else first
+  if (!currentStage) {
+    const todayKey = new Date().toLocaleDateString('en-CA');
+    const todayMatch = [...matches].sort((a,b)=>new Date(a.date_utc)-new Date(b.date_utc))
+      .find(m => localDateKey(m.date_utc) >= todayKey);
+    currentStage = todayMatch ? stageOfRound(todayMatch.round_number).id : stages[0].id;
+  }
+  const stageTabs = stages.map(s =>
+    `<button class="md-tab ${s.id===currentStage?'active':''}" onclick="setStage('${s.id}')">${stageLabel(s)}</button>`
+  ).join('');
   sb.innerHTML = `
-    <div class="muted" style="text-align:center;padding:6px 16px 0;">🌍 ${t('localTimeShown')} (${userTZ}) · ${t('perDayHint')}</div>
-    <div class="md-tabs" style="padding:8px 16px 0;">${tabsHtml}</div>
+    <div class="muted" style="text-align:center;padding:6px 16px 0;">🌍 ${t('localTimeShown')} (${userTZ})</div>
+    <div class="md-tabs" style="padding:8px 16px 4px;">${stageTabs}</div>
+    <div id="dayTabsWrap" style="padding:0 16px;"></div>
     <div class="list" id="dayList"></div>`;
+  renderStageDays();
+}
+function setStage(id) {
+  currentStage = id;
+  liveDayKey = null; // reset day selection within the new stage
+  renderMatchPredict();
+}
+function renderStageDays() {
+  const stage = STAGE_DEFS.find(s => s.id === currentStage);
+  const days = daysInStage(stage);
+  if (!liveDayKey || !days.includes(liveDayKey)) {
+    const todayKey = new Date().toLocaleDateString('en-CA');
+    liveDayKey = days.find(d => d >= todayKey) || days[0];
+  }
+  const dayTabs = days.map(k =>
+    `<button class="md-tab ${k===liveDayKey?'active':''}" onclick="setLiveDay('${k}')">${shortLabel(k)}</button>`
+  ).join('');
+  const wrap = document.getElementById('dayTabsWrap');
+  if (wrap) wrap.innerHTML = `<div class="md-tabs" style="margin-top:4px;border-top:1px solid var(--border);padding-top:8px;">${dayTabs}</div>`;
   renderDayMatches();
 }
-function setLiveDay(d) { liveDayKey = d; renderDayMatches(); }
+function setLiveDay(d) { liveDayKey = d; renderStageDaysActiveOnly(); }
+function renderStageDaysActiveOnly() {
+  // just re-highlight day tabs + re-render matches (no full rebuild)
+  const stage = STAGE_DEFS.find(s => s.id === currentStage);
+  const days = daysInStage(stage);
+  const wrap = document.getElementById('dayTabsWrap');
+  if (wrap) wrap.innerHTML = `<div class="md-tabs" style="margin-top:4px;border-top:1px solid var(--border);padding-top:8px;">${
+    days.map(k => `<button class="md-tab ${k===liveDayKey?'active':''}" onclick="setLiveDay('${k}')">${shortLabel(k)}</button>`).join('')
+  }</div>`;
+  renderDayMatches();
+}
 function predLocked(m) { return Date.now() >= new Date(m.date_utc).getTime() - 3600000; }
 function renderDayMatches() {
   const list = document.getElementById('dayList');

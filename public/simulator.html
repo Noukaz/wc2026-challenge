@@ -538,9 +538,17 @@ function calcStandings() {
   return std;
 }
 function applyStandingsToGroups() {
+  // If the user has entered any match scores, sort groups by those results.
+  // Otherwise (manual prediction mode), KEEP the user's manual drag order intact.
+  const hasAnyScore = Object.keys(state.scores || {}).some(n => {
+    const s = state.scores[n];
+    return s && s.h !== '' && s.h != null && s.a !== '' && s.a != null;
+  });
+  if (!hasAnyScore) return; // preserve manual ranking from the arrows
+
   const std = calcStandings();
   Object.keys(GROUPS).forEach(g => {
-    const rows = GROUPS[g].map(t => ({...t, stats: std[g][t.name]||{pts:0,gf:0,ga:0,gd:0,mp:0}}));
+    const rows = state.groups[g].map(t => ({ ...t, stats: std[g][t.name] || { pts:0, gf:0, ga:0, gd:0, mp:0 } }));
     rows.sort((a,b) => {
       if (b.stats.pts!==a.stats.pts) return b.stats.pts-a.stats.pts;
       if (b.stats.gd!==a.stats.gd) return b.stats.gd-a.stats.gd;
@@ -1617,6 +1625,9 @@ updateProgress();
     if (h.indexOf('live')>=0){ if (typeof enterMode==='function') enterMode('live'); }
     else if (h.indexOf('champions')>=0){
       if (typeof enterMode==='function') enterMode('sim');
+      // In Champions prediction mode we don't need the Match Schedule tab — hide it
+      var scoresTab = document.getElementById('tab-scores');
+      if (scoresTab) scoresTab.style.display = 'none';
       if (typeof showView==='function') setTimeout(()=>showView('groups'), 50);
     }
   }
