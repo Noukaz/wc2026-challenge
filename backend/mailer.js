@@ -1,36 +1,58 @@
-import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 dotenv.config();
 
-let transporter = null;
-if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
-  transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT || 587),
-    secure: Number(process.env.SMTP_PORT) === 465,
-    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-  });
-}
+// Uses Brevo's HTTP API (port 443) instead of SMTP (port 587 is blocked on Render free tier).
+// Set BREVO_API_KEY in Render environment variables.
+// Get it from: Brevo dashboard → top-right menu → SMTP & API → API Keys tab → Create API key
 
 export async function sendOtpEmail(to, code) {
   const subject = 'Your World Cup 2026 Challenge code';
-  const text = `Your verification code is ${code}. It expires in 10 minutes.`;
-  const html = `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto">
-      <h2 style="color:#C9A84C">⚽ World Cup 2026 Challenge</h2>
-      <p>Your one-time verification code is:</p>
-      <p style="font-size:32px;font-weight:bold;letter-spacing:6px;color:#1a6fc4">${code}</p>
-      <p style="color:#666">This code expires in 10 minutes. If you didn't request it, ignore this email.</p>
+  const html = `
+    <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:24px;">
+      <h2 style="color:#C9A84C;margin:0 0 16px">⚽ World Cup 2026 Challenge</h2>
+      <p style="color:#333;margin:0 0 12px">Your one-time verification code:</p>
+      <p style="font-size:36px;font-weight:bold;letter-spacing:8px;color:#1a6fc4;margin:16px 0">${code}</p>
+      <p style="color:#888;font-size:13px">Expires in 10 minutes. If you didn't request this, ignore it.</p>
     </div>`;
 
-  if (!transporter) {
+  const apiKey = process.env.BREVO_API_KEY;
+
+  // No API key → dev mode
+  if (!apiKey) {
     console.log(`\n[DEV OTP] ${to} -> ${code}\n`);
     return { devCode: code };
   }
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM || 'World Cup Challenge <no-reply@wc2026.app>',
-    to, subject, text, html,
-  });
-  return { sent: true };
+
+  try {
+    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': apiKey,
+      },
+      body: JSON.stringify({
+        sender: {
+          name: process.env.SMTP_FROM_NAME || 'World Cup 2026 Challenge',
+          email: process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER,
+        },
+        to: [{ email: to }],
+        subject,
+        htmlContent: html,
+        textContent: `Your World Cup 2026 Challenge code is: ${code}. It expires in 10 minutes.`,
+      }),
+    });
+
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`Brevo API ${res.status}: ${body}`);
+    }
+    console.log(`[Brevo API] Email sent to ${to}`);
+    return { sent: true };
+  } catch (err) {
+    console.error('[Brevo API] Send FAILED:', err.message);
+    // Fallback: show code on screen so user is never blocked
+    return { devCode: code, smtpError: err.message };
+  }
 }
 
-export const SMTP_CONFIGURED = !!transporter;
+export const SMTP_CONFIGURED = !!(process.env.BREVO_API_KEY);
