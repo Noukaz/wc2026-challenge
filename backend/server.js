@@ -47,8 +47,14 @@ app.post('/api/auth/request-otp', async (req, res) => {
     const expires = new Date(Date.now() + 10 * 60 * 1000);
     await query('INSERT INTO otps (email, code_hash, expires_at) VALUES ($1,$2,$3)', [email, codeHash, expires]);
     const result = await sendOtpEmail(email, code);
-    res.json({ ok: true, devCode: SMTP_CONFIGURED ? undefined : result.devCode });
-  } catch (e) { console.error(e); res.status(500).json({ error: 'Failed to send code' }); }
+    // If SMTP failed, result.devCode is set as fallback — show it on screen
+    // If SMTP succeeded, devCode is undefined (email was sent)
+    const devCode = result.devCode || (SMTP_CONFIGURED() ? undefined : code);
+    res.json({ ok: true, devCode, smtpError: result.smtpError });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Failed to send code: ' + e.message });
+  }
 });
 
 app.post('/api/auth/verify-otp', async (req, res) => {
@@ -275,7 +281,7 @@ const PORT = process.env.PORT || 3000;
 // any manual command — the tables and fixtures are created on first boot.
 ensureDatabase()
   .then(() => {
-    app.listen(PORT, () => console.log(`Server running on :${PORT} (SMTP ${SMTP_CONFIGURED ? 'configured' : 'DEV mode'})`));
+    app.listen(PORT, () => console.log(`Server running on :${PORT} (SMTP ${SMTP_CONFIGURED() ? 'configured' : 'DEV mode'})`));
   })
   .catch((e) => {
     console.error('Could not start — database error:', e.message);
